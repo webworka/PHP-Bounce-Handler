@@ -37,11 +37,18 @@ class ImapDriver {
         $this->hostname = $hostname;
     }
 
-    public function getNewEmailsFromInbox() {
-        $inbox = imap_open($this->hostname, $this->username, $this->password) or die('Cannot connect to Imap Account: ' . imap_last_error());
+    /**
+     * Fetches some/all mails from a specific Mailbox and returns them as a string array
+     * Be aware that Mails are marked as read when fetching them
+     *
+     * @param string $search
+     * @return array
+     */
+    public function getNewEmailsFromInbox($search = 'ALL') {
+        $inbox = imap_open($this->hostname, $this->username, $this->password, OP_DEBUG) or die('Cannot connect to Imap Account: ' . imap_last_error());
 
         /* grab emails */
-        $emails = imap_search($inbox,'NEW');
+        $emails = imap_search($inbox, $search);
 
         $emailTexts = array();
 
@@ -52,7 +59,8 @@ class ImapDriver {
 
             /* for every email... */
             foreach($emails as $email_number) {
-                $emailTexts[] = imap_fetchbody($inbox,$email_number,2);
+                $headers = imap_fetchheader($inbox, $email_number, FT_PREFETCHTEXT);
+                $emailTexts[] = $headers . imap_fetchbody($inbox, $email_number, "1");
             }
         }
 
@@ -61,13 +69,3 @@ class ImapDriver {
 
 }
 
-/* connect to gmail */
-$hostname = '{mail.senercon.de:995/imap/ssl/novalidate-cert}INBOX';
-$username = 'rgfwbounces@senercon.de';
-$password = 'rgfwbounces1.';
-
-$imap = new ImapDriver($username, $password, $hostname);
-print_r($imap->getNewEmailsFromInbox());
-
-
-echo "fertig\n";
